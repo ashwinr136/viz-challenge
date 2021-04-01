@@ -1,0 +1,122 @@
+---
+title: "Viz Challenge"
+author: "Ashwin Raj"
+date: "3/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+nba<-read.csv("/Users/rajpr/Downloads/2019-player-stats.csv")
+
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(gridExtra)
+library(leaps)
+library(psych)
+library(NbClust)
+library(sqldf)
+
+```
+
+delete if needed 
+
+```{r}
+rm_ind <- which(nba$MP > quantile(nba$MP, .20) | nba$G > 30)
+
+nba <- nba[rm_ind, ]
+```
+
+```{r}
+hca.fit <- NbClust(data = nba[,c('X3P', 'STL')],
+				distance = "euclidean", 
+				method = "ward.D",
+				index="all")
+```
+
+```{r}
+d.matrix <- dist(x= nba[,c('X3P', 'STL')], method="euclidean")
+hclust.fit <- hclust(d=d.matrix, method="ward.D")
+
+
+nba$mem4 <- cutree(hclust.fit, k=6)
+
+c1mean <- c(mean(nba$X3P[nba$mem4==1]),
+			mean(nba$STL[nba$mem4==1])
+			)
+
+c2mean <- c(mean(nba$X3P[nba$mem4==2]),
+			mean(nba$STL[nba$mem4==2])
+			)
+
+c3mean <- c(mean(nba$X3P[nba$mem4==3]),
+			mean(nba$STL[nba$mem4==3])
+			)
+
+c4mean <- c(mean(nba$X3P[nba$mem4==4]),
+			mean(nba$STL[nba$mem4==4])
+			)
+
+c5mean <- c(mean(nba$X3P[nba$mem4==5]),
+			mean(nba$STL[nba$mem4==5])
+			)
+
+c6mean <- c(mean(nba$X3P[nba$mem4==6]),
+			mean(nba$STL[nba$mem4==6])
+			)
+
+
+
+```
+
+```{r}
+
+nba_centroids <- rbind(c1mean, c2mean, c3mean,c4mean,c5mean,c6mean)
+kmeans.fit <- kmeans(x=nba[,c('X3P','STL')], centers=nba_centroids)
+```
+
+
+```{r}
+nba$kmem4_num <- kmeans.fit$cluster
+nba$role <- factor(kmeans.fit$cluster, labels = c('Shooters', 'Bench Offense', 'Low-impact','Two-Way','Bench Defense','Elite'))
+g<-ggplotly(ggplot(nba, aes(x=X3P, y=STL, col = role, text = Player)) + geom_point() + labs(x= "3 Pointers Per 36 Mins", y = "Steals Per 36 Mins",title ='Clustering NBA Players Based on Offensive and Defensive Skillset') + scale_color_manual(values=c("seagreen3", "deeppink2", "chocolate4","orange","cornflowerblue","red")))
+g
+```
+
+```{r}
+l <- plotly::ggplotly(g)
+
+htmlwidgets::saveWidget(l, "NBA_Clustering.html")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
